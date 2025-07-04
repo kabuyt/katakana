@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>カタカナクイズ</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      padding: 20px;
+      max-width: 500px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    #question-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+    }
+    #question {
+      font-size: 96px;
+      text-align: center;
+      margin: 20px 0;
+      min-height: 120px;
+    }
+    #result {
+      text-align: center;
+      font-size: 24px;
+      margin-bottom: 20px;
+      min-height: 32px;
+    }
+    .choices {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-around;
+      margin-bottom: 20px;
+    }
+    .choices button {
+      font-size: 24px;
+      padding: 10px 20px;
+      margin: 5px;
+    }
+    #filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+  <h1>カタカナクイズ</h1>
+  <div id="filters"></div>
+  <p style="font-size: 16px; margin-bottom: 20px; text-align: center;">出題範囲を選んでください（Vui lòng chọn phạm vi câu hỏi）</p>
+  <div id="question-container">
+    <div id="question"></div>
+    <div id="result"></div>
+  </div>
+  <div class="choices"></div>
+  <script>
+    const fullQuizData = {
+      a: ["ア", "イ", "ウ", "エ", "オ"],
+      k: ["カ", "キ", "ク", "ケ", "コ"],
+      s: ["サ", "シ", "ス", "セ", "ソ"],
+      t: ["タ", "チ", "ツ", "テ", "ト"],
+      n: ["ナ", "ニ", "ヌ", "ネ", "ノ"],
+      h: ["ハ", "ヒ", "フ", "ヘ", "ホ"],
+      m: ["マ", "ミ", "ム", "メ", "モ"],
+      y: ["ヤ", "ユ", "ヨ"],
+      r: ["ラ", "リ", "ル", "レ", "ロ"],
+      w: ["ワ", "ヲ", "ン"],
+      g: ["ガ", "ギ", "グ", "ゲ", "ゴ"],
+      z: ["ザ", "ジ", "ズ", "ゼ", "ゾ"],
+      d: ["ダ", "ヂ", "ヅ", "デ", "ド"],
+      b: ["バ", "ビ", "ブ", "ベ", "ボ"],
+      p: ["パ", "ピ", "プ", "ペ", "ポ"],
+      combo: ["キャ", "キュ", "キョ", "シャ", "シュ", "ショ", "チャ", "チュ", "チョ"]
+    };
+
+    const romajiMap = {
+      ア: "a", イ: "i", ウ: "u", エ: "e", オ: "o",
+      カ: "ka", キ: "ki", ク: "ku", ケ: "ke", コ: "ko",
+      サ: "sa", シ: "shi", ス: "su", セ: "se", ソ: "so",
+      タ: "ta", チ: "chi", ツ: "tsu", テ: "te", ト: "to",
+      ナ: "na", ニ: "ni", ヌ: "nu", ネ: "ne", ノ: "no",
+      ハ: "ha", ヒ: "hi", フ: "fu", ヘ: "he", ホ: "ho",
+      マ: "ma", ミ: "mi", ム: "mu", メ: "me", モ: "mo",
+      ヤ: "ya", ユ: "yu", ヨ: "yo",
+      ラ: "ra", リ: "ri", ル: "ru", レ: "re", ロ: "ro",
+      ワ: "wa", ヲ: "wo", ン: "n",
+      ガ: "ga", ギ: "gi", グ: "gu", ゲ: "ge", ゴ: "go",
+      ザ: "za", ジ: "ji", ズ: "zu", ゼ: "ze", ゾ: "zo",
+      ダ: "da", ヂ: "ji", ヅ: "zu", デ: "de", ド: "do",
+      バ: "ba", ビ: "bi", ブ: "bu", ベ: "be", ボ: "bo",
+      パ: "pa", ピ: "pi", プ: "pu", ペ: "pe", ポ: "po",
+      キャ: "kya", キュ: "kyu", キョ: "kyo",
+      シャ: "sha", シュ: "shu", ショ: "sho",
+      チャ: "cha", チュ: "chu", チョ: "cho"
+    };
+
+    let quizData = [];
+    let currentQuestion;
+
+    function toRomaji(kana) {
+      return romajiMap[kana] || "";
+    }
+
+    function getSelectedGroups() {
+      return Array.from(document.querySelectorAll("input[name='group']:checked")).map(cb => cb.value);
+    }
+
+    function updateQuizData() {
+      quizData = [];
+      const groups = getSelectedGroups();
+      if (groups.length === 0) return;
+      groups.forEach(group => {
+        const data = fullQuizData[group];
+        if (!data) return;
+        quizData = quizData.concat(data.map(kana => ({ kana, romaji: toRomaji(kana) })));
+      });
+    }
+
+    function setQuestion() {
+      updateQuizData();
+      if (quizData.length === 0) {
+        document.getElementById("question").textContent = "出題範囲を選んでください";
+        document.querySelector(".choices").innerHTML = "";
+        return;
+      }
+      currentQuestion = quizData[Math.floor(Math.random() * quizData.length)];
+      document.getElementById("question").textContent = currentQuestion.kana;
+      const choices = [currentQuestion.romaji];
+      while (choices.length < 4) {
+        const random = quizData[Math.floor(Math.random() * quizData.length)].romaji;
+        if (!choices.includes(random)) choices.push(random);
+      }
+      choices.sort(() => Math.random() - 0.5);
+      document.querySelector(".choices").innerHTML = choices.map(choice => `<button onclick="checkAnswer('${choice}')">${choice}</button>`).join("");
+    }
+
+    function checkAnswer(answer) {
+      const correct = currentQuestion.romaji;
+      const resultDisplay = document.createElement("div");
+      resultDisplay.textContent = answer === correct ? "Đúng!" : "Sai...";
+      const resultContainer = document.getElementById("result");
+      resultContainer.innerHTML = "";
+      resultContainer.appendChild(resultDisplay);
+
+      const utterance = new SpeechSynthesisUtterance(currentQuestion.kana);
+      utterance.lang = "ja-JP";
+      speechSynthesis.speak(utterance);
+
+      setTimeout(() => {
+        resultDisplay.remove();
+        setQuestion();
+      }, 1000);
+    }
+
+    function handleCheckboxChange() {
+      setQuestion();
+    }
+
+    window.onload = () => {
+      const filterDiv = document.getElementById("filters");
+      const groupLabels = {
+        a: "ア行", k: "カ行", s: "サ行", t: "タ行", n: "ナ行",
+        h: "ハ行", m: "マ行", y: "ヤ行", r: "ラ行", w: "ワ行",
+        g: "ガ行", z: "ザ行", d: "ダ行", b: "バ行", p: "パ行",
+        combo: "拗音"
+      };
+      Object.keys(fullQuizData).forEach(group => {
+        const label = document.createElement("label");
+        const labelText = groupLabels[group] || group;
+        label.innerHTML = `<input type="checkbox" name="group" value="${group}" onchange="handleCheckboxChange()"> ${labelText}`;
+        filterDiv.appendChild(label);
+      });
+    };
+  </script>
+</body>
+</html>
